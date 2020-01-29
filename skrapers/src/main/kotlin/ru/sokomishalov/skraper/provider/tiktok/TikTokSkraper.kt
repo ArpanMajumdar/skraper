@@ -5,6 +5,7 @@ import ru.sokomishalov.skraper.Skraper
 import ru.sokomishalov.skraper.SkraperClient
 import ru.sokomishalov.skraper.client.jdk.DefaultBlockingSkraperClient
 import ru.sokomishalov.skraper.fetchDocument
+import ru.sokomishalov.skraper.fetchJson
 import ru.sokomishalov.skraper.internal.serialization.aReadJsonNodes
 import ru.sokomishalov.skraper.model.ImageSize
 import ru.sokomishalov.skraper.model.ImageSize.*
@@ -21,7 +22,12 @@ class TikTokSkraper @JvmOverloads constructor(
 
     override suspend fun getLatestPosts(uri: String, limit: Int): List<Post> {
         val userData = getUserData(uri)
-        val userId = userData?.get("userId")?.asLong()
+
+        val id = userData?.get("userId")?.asText()
+        val secUid = userData?.get("secUid")?.asText()
+
+        val url = "${TIK_TOK_BASE_URL}/share/item/list?id=${id}&secUid=${secUid}&type=1&count=${limit}&minCursor=0&maxCursor=0&_signature=VIm6dAAgEBYZFjzZxqkSy1SJu2AAAlc"
+        val data = client.fetchJson(url = url, headers = mapOf("Referer" to TIK_TOK_BASE_URL))
 
         return emptyList()
     }
