@@ -20,11 +20,23 @@ class TikTokSkraper @JvmOverloads constructor(
     }
 
     override suspend fun getLatestPosts(uri: String, limit: Int): List<Post> {
-        // TODO
+        val userData = getUserData(uri)
+        val userId = userData?.get("userId")?.asLong()
+
         return emptyList()
     }
 
     override suspend fun getPageLogoUrl(uri: String, imageSize: ImageSize): String? {
+        val user = getUserData(uri)
+
+        return when (imageSize) {
+            SMALL -> user.getCover("covers")
+            MEDIUM -> user.getCover("coversMedium") ?: user.getCover("covers")
+            LARGE -> user.getCover("coversLarge") ?: user.getCover("coversMedium") ?: user.getCover("covers")
+        }
+    }
+
+    private suspend fun getUserData(uri: String): JsonNode? {
         val document = client.fetchDocument("${TIK_TOK_BASE_URL}/${uri}")
 
         val data = document
@@ -34,17 +46,10 @@ class TikTokSkraper @JvmOverloads constructor(
 
         val json = data.aReadJsonNodes()
 
-        val user = json
+        return json
                 .get("props")
                 ?.get("pageProps")
                 ?.get("userData")
-
-
-        return when (imageSize) {
-            SMALL -> user.getCover("covers")
-            MEDIUM -> user.getCover("coversMedium") ?: user.getCover("covers")
-            LARGE -> user.getCover("coversLarge") ?: user.getCover("coversMedium") ?: user.getCover("covers")
-        }
     }
 
     private fun JsonNode?.getCover(name: String): String? {
