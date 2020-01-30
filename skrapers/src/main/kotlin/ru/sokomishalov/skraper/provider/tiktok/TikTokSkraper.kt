@@ -7,6 +7,7 @@ import ru.sokomishalov.skraper.client.jdk.DefaultBlockingSkraperClient
 import ru.sokomishalov.skraper.fetchDocument
 import ru.sokomishalov.skraper.fetchJson
 import ru.sokomishalov.skraper.internal.serialization.aReadJsonNodes
+import ru.sokomishalov.skraper.internal.url.uriCleanUp
 import ru.sokomishalov.skraper.model.ImageSize
 import ru.sokomishalov.skraper.model.ImageSize.*
 import ru.sokomishalov.skraper.model.Post
@@ -16,9 +17,8 @@ class TikTokSkraper @JvmOverloads constructor(
         override val client: SkraperClient = DefaultBlockingSkraperClient
 ) : Skraper {
 
-    companion object {
-        private const val TIK_TOK_BASE_URL = "https://tiktok.com"
-    }
+    override val baseUrl: String = "https://tiktok.com"
+
 
     override suspend fun getLatestPosts(uri: String, limit: Int): List<Post> {
         val userData = getUserData(uri)
@@ -26,8 +26,8 @@ class TikTokSkraper @JvmOverloads constructor(
         val id = userData?.get("userId")?.asText()
         val secUid = userData?.get("secUid")?.asText()
 
-        val url = "${TIK_TOK_BASE_URL}/share/item/list?id=${id}&secUid=${secUid}&type=1&count=${limit}&minCursor=0&maxCursor=0&_signature=VIm6dAAgEBYZFjzZxqkSy1SJu2AAAlc"
-        val data = client.fetchJson(url = url, headers = mapOf("Referer" to TIK_TOK_BASE_URL))
+        val url = "${baseUrl}/share/item/list?id=${id}&secUid=${secUid}&type=1&count=${limit}&minCursor=0&maxCursor=0&_signature=VIm6dAAgEBYZFjzZxqkSy1SJu2AAAlc"
+        val data = client.fetchJson(url = url, headers = mapOf("Referer" to baseUrl))
 
         return emptyList()
     }
@@ -43,7 +43,7 @@ class TikTokSkraper @JvmOverloads constructor(
     }
 
     private suspend fun getUserData(uri: String): JsonNode? {
-        val document = client.fetchDocument("${TIK_TOK_BASE_URL}/${uri}")
+        val document = client.fetchDocument("${baseUrl}/${uri.uriCleanUp()}")
 
         val data = document
                 ?.getElementById("__NEXT_DATA__")
