@@ -1,25 +1,24 @@
 package ru.sokomishalov.skraper.provider.tiktok
 
 import com.fasterxml.jackson.databind.JsonNode
-import kotlinx.coroutines.Dispatchers.IO
-import kotlinx.coroutines.withContext
 import ru.sokomishalov.skraper.Skraper
 import ru.sokomishalov.skraper.SkraperClient
 import ru.sokomishalov.skraper.client.jdk.DefaultBlockingSkraperClient
 import ru.sokomishalov.skraper.fetchDocument
 import ru.sokomishalov.skraper.fetchJson
+import ru.sokomishalov.skraper.internal.js.JsEvaluator
+import ru.sokomishalov.skraper.internal.js.getPlatformDependentJsEvaluator
 import ru.sokomishalov.skraper.internal.serialization.aReadJsonNodes
 import ru.sokomishalov.skraper.internal.url.uriCleanUp
 import ru.sokomishalov.skraper.model.ImageSize
 import ru.sokomishalov.skraper.model.ImageSize.*
 import ru.sokomishalov.skraper.model.Post
-import javax.script.Invocable
-import javax.script.ScriptEngineManager
 import kotlin.text.Charsets.UTF_8
 
 
 class TikTokSkraper @JvmOverloads constructor(
-        override val client: SkraperClient = DefaultBlockingSkraperClient
+        override val client: SkraperClient = DefaultBlockingSkraperClient,
+        private val jsEvaluator: JsEvaluator = getPlatformDependentJsEvaluator(script = JS_CRAWLER)
 ) : Skraper {
 
     override val baseUrl: String = "https://tiktok.com"
@@ -31,10 +30,21 @@ class TikTokSkraper @JvmOverloads constructor(
         val secUid = userData?.get("secUid")?.asText()
 
         val url = "${baseUrl}/share/item/list?id=${id}&secUid=${secUid}&type=1&count=${limit}&minCursor=0&maxCursor=0"
+
         val signature = generateSignature(url)
+
         val data = client.fetchJson(url = "${url}&_signature=${signature}", headers = mapOf("Referer" to baseUrl))
 
-        return emptyList()
+        val items = data
+                .get("body")
+                ?.get("itemListData")
+                ?.toList()
+                .orEmpty()
+
+        return items.mapNotNull {
+            Post(id = "")
+        }
+
     }
 
     override suspend fun getPageLogoUrl(uri: String, imageSize: ImageSize): String? {
@@ -67,19 +77,9 @@ class TikTokSkraper @JvmOverloads constructor(
         return this?.get(name)?.elements()?.next()?.asText()
     }
 
-    private suspend fun generateSignature(url: String): String? = withContext(IO) {
-        runCatching {
-            JS_ENGINE.eval(JS_CRAWLER).toString()
-            val inv = JS_ENGINE as Invocable
-            val value = inv.invokeFunction("generateSignature", url) as String?
-            value
-        }.onFailure {
-            println(it)
-        }.getOrNull()
-    }
+    private suspend fun generateSignature(url: String): String? = jsEvaluator.eval("generateSignature", url)
 
     companion object {
-        private val JS_ENGINE = ScriptEngineManager().getEngineByName("JavaScript")
         private val JS_CRAWLER = TikTokSkraper::class.java.getResource("/tiktok/fuck-byted-crawler.js").readText()
     }
 }
