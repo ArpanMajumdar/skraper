@@ -26,14 +26,20 @@ class TikTokSkraper @JvmOverloads constructor(
     override suspend fun getLatestPosts(uri: String, limit: Int): List<Post> {
         val userData = getUserData(uri)
 
-        val id = userData?.get("userId")?.asText()
-        val secUid = userData?.get("secUid")?.asText()
+        val id = userData?.get("userId")?.asText().orEmpty()
+        val secUid = userData?.get("secUid")?.asText().orEmpty()
 
-        val url = "${baseUrl}/share/item/list?id=${id}&secUid=${secUid}&type=1&count=${limit}&minCursor=0&maxCursor=0"
+        val url = "${baseUrl}/share/item/list?secUid=${secUid}&id=${id}&type=1&count=${limit}&minCursor=0&maxCursor=0"
 
-        val signature = generateSignature(url)
+        val signature = generateSignature(url = url)
 
-        val data = client.fetchJson(url = "${url}&_signature=${signature}", headers = mapOf("Referer" to baseUrl))
+        val finalUrl = "${url}&_signature=${signature}"
+        val headers = mapOf(
+                "Referer" to baseUrl,
+                "User-Agent" to USER_AGENT
+        )
+
+        val data = client.fetchJson(url = id, headers = headers)
 
         val items = data
                 .get("body")
@@ -58,7 +64,7 @@ class TikTokSkraper @JvmOverloads constructor(
     }
 
     private suspend fun getUserData(uri: String): JsonNode? {
-        val document = client.fetchDocument("${baseUrl}/${uri.uriCleanUp()}")
+        val document = client.fetchDocument(url = "${baseUrl}/${uri.uriCleanUp()}", headers = mapOf("User-Agent" to USER_AGENT))
 
         val data = document
                 ?.getElementById("__NEXT_DATA__")
@@ -77,9 +83,12 @@ class TikTokSkraper @JvmOverloads constructor(
         return this?.get(name)?.elements()?.next()?.asText()
     }
 
-    private suspend fun generateSignature(url: String): String? = jsEvaluator.eval("generateSignature", url)
+    private suspend fun generateSignature(url: String): String? {
+        return jsEvaluator.eval("generateSignature", url, USER_AGENT)
+    }
 
     companion object {
         private val JS_CRAWLER = TikTokSkraper::class.java.getResource("/tiktok/fuck-byted-crawler.js").readText()
+        private const val USER_AGENT = "Mozilla/5.0 (iPhone; CPU iPhone OS 11_0 like Mac OS X) AppleWebKit/604.1.38 (KHTML, like Gecko) Version/11.0 Mobile/15A372 Safari/604.1"
     }
 }
