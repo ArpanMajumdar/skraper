@@ -9,7 +9,6 @@ import ru.sokomishalov.skraper.fetchJson
 import ru.sokomishalov.skraper.internal.js.JsEvaluator
 import ru.sokomishalov.skraper.internal.js.getPlatformDependentJsEvaluator
 import ru.sokomishalov.skraper.internal.serialization.aReadJsonNodes
-import ru.sokomishalov.skraper.internal.url.uriCleanUp
 import ru.sokomishalov.skraper.model.ImageSize
 import ru.sokomishalov.skraper.model.ImageSize.*
 import ru.sokomishalov.skraper.model.Post
@@ -23,8 +22,8 @@ class TikTokSkraper @JvmOverloads constructor(
 
     override val baseUrl: String = "https://tiktok.com"
 
-    override suspend fun getLatestPosts(uri: String, limit: Int): List<Post> {
-        val userData = getUserData(uri)
+    override suspend fun getPosts(path: String, limit: Int): List<Post> {
+        val userData = getUserData(path = path)
 
         val id = userData?.get("userId")?.asText().orEmpty()
         val secUid = userData?.get("secUid")?.asText().orEmpty()
@@ -42,7 +41,7 @@ class TikTokSkraper @JvmOverloads constructor(
         val data = client.fetchJson(url = id, headers = headers)
 
         val items = data
-                .get("body")
+                ?.get("body")
                 ?.get("itemListData")
                 ?.toList()
                 .orEmpty()
@@ -53,8 +52,8 @@ class TikTokSkraper @JvmOverloads constructor(
 
     }
 
-    override suspend fun getPageLogoUrl(uri: String, imageSize: ImageSize): String? {
-        val user = getUserData(uri)
+    override suspend fun getLogoUrl(path: String, imageSize: ImageSize): String? {
+        val user = getUserData(path = path)
 
         return when (imageSize) {
             SMALL -> user.getCover("covers")
@@ -63,8 +62,8 @@ class TikTokSkraper @JvmOverloads constructor(
         }
     }
 
-    private suspend fun getUserData(uri: String): JsonNode? {
-        val document = client.fetchDocument(url = "${baseUrl}/${uri.uriCleanUp()}", headers = mapOf("User-Agent" to USER_AGENT))
+    private suspend fun getUserData(path: String): JsonNode? {
+        val document = client.fetchDocument(url = "${baseUrl}${path}", headers = mapOf("User-Agent" to USER_AGENT))
 
         val data = document
                 ?.getElementById("__NEXT_DATA__")
