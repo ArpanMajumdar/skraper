@@ -73,7 +73,7 @@ class TikTokSkraper @JvmOverloads constructor(
         val json = data.aReadJsonNodes()
 
         return json
-                .get("props")
+                ?.get("props")
                 ?.get("pageProps")
                 ?.get("userData")
     }
