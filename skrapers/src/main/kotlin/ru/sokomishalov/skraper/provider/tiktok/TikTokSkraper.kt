@@ -6,14 +6,14 @@ import ru.sokomishalov.skraper.SkraperClient
 import ru.sokomishalov.skraper.client.jdk.DefaultBlockingSkraperClient
 import ru.sokomishalov.skraper.fetchDocument
 import ru.sokomishalov.skraper.fetchJson
-import ru.sokomishalov.skraper.internal.serialization.getByPath
-import ru.sokomishalov.skraper.internal.serialization.getInt
-import ru.sokomishalov.skraper.internal.serialization.getString
-import ru.sokomishalov.skraper.internal.serialization.readJsonNodes
+import ru.sokomishalov.skraper.internal.number.div
+import ru.sokomishalov.skraper.internal.serialization.*
 import ru.sokomishalov.skraper.model.MediaSize.*
 import ru.sokomishalov.skraper.model.PageInfo
 import ru.sokomishalov.skraper.model.Post
+import ru.sokomishalov.skraper.model.Video
 import ru.sokomishalov.skraper.model.toImage
+import java.time.Duration
 import java.util.*
 
 
@@ -39,13 +39,26 @@ class TikTokSkraper @JvmOverloads constructor(
 
         val items = data
                 ?.getByPath("body.itemListData")
+                ?.mapNotNull { it.getByPath("itemInfos") }
                 ?.toList()
                 .orEmpty()
 
-        return items.mapNotNull {
-            Post(id = "")
+        return items.map { item ->
+            Post(
+                    id = item.getString("id").orEmpty(),
+                    text = item.getString("text"),
+                    rating = item.getInt("diggCount"),
+                    commentsCount = item.getInt("commentCount"),
+                    viewsCount = item.getInt("playCount"),
+                    media = item.getByPath("video")?.let { video ->
+                        listOf(Video(
+                                url = video.get("urls")?.firstOrNull()?.asText().orEmpty(),
+                                aspectRatio = video.getDouble("videoMeta.width") / video.getDouble("videoMeta.height"),
+                                duration = video.getLong("videoMeta.duration")?.let { sec -> Duration.ofSeconds(sec) }
+                        ))
+                    }.orEmpty()
+            )
         }
-
     }
 
     override suspend fun getPageInfo(path: String): PageInfo? {
@@ -86,8 +99,6 @@ class TikTokSkraper @JvmOverloads constructor(
                 .mapNotNull {
                     this
                             ?.get(it)
-                            ?.elements()
-                            ?.asSequence()
                             ?.firstOrNull()
                             ?.asText()
                 }
