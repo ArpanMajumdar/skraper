@@ -5,5 +5,5 @@ import ru.sokomishalov.skraper.provider.SkraperTck
 
 class TikTokSkraperTest : SkraperTck() {
     override val skraper: Skraper = TikTokSkraper(client = client)
-    override val uri: String = "@twins.verz?"
+    override val path: String = "/@meme"
 }

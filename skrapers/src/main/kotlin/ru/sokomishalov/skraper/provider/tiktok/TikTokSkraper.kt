@@ -7,6 +7,8 @@ import ru.sokomishalov.skraper.client.jdk.DefaultBlockingSkraperClient
 import ru.sokomishalov.skraper.fetchDocument
 import ru.sokomishalov.skraper.fetchJson
 import ru.sokomishalov.skraper.internal.serialization.getByPath
+import ru.sokomishalov.skraper.internal.serialization.getInt
+import ru.sokomishalov.skraper.internal.serialization.getString
 import ru.sokomishalov.skraper.internal.serialization.readJsonNodes
 import ru.sokomishalov.skraper.model.MediaSize.*
 import ru.sokomishalov.skraper.model.PageInfo
@@ -50,10 +52,14 @@ class TikTokSkraper @JvmOverloads constructor(
 
         return user?.run {
             PageInfo(
-                    coversMap = mapOf(
-                            SMALL to user.getFirstCover("covers").toImage(),
-                            MEDIUM to user.getFirstCover("coversMedium", "covers").toImage(),
-                            LARGE to user.getFirstCover("coversLarge", "coversMedium", "covers").toImage()
+                    nick = getString("uniqueId").orEmpty(),
+                    name = getString("nickName"),
+                    description = getString("signature"),
+                    followersCount = getInt("fans"),
+                    avatarsMap = mapOf(
+                            SMALL to user.getFirstAvatar("covers").toImage(),
+                            MEDIUM to user.getFirstAvatar("coversMedium", "covers").toImage(),
+                            LARGE to user.getFirstAvatar("coversLarge", "coversMedium", "covers").toImage()
                     )
             )
         }
@@ -74,13 +80,14 @@ class TikTokSkraper @JvmOverloads constructor(
                 ?.get("userData")
     }
 
-    private fun JsonNode?.getFirstCover(vararg names: String): String {
+    private fun JsonNode?.getFirstAvatar(vararg names: String): String {
         return names
                 .mapNotNull {
                     this
                             ?.get(it)
                             ?.elements()
-                            ?.next()
+                            ?.asSequence()
+                            ?.firstOrNull()
                             ?.asText()
                 }
                 .firstOrNull()
