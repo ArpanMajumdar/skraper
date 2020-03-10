@@ -14,6 +14,7 @@ import ru.sokomishalov.skraper.model.MediaSize.*
 import ru.sokomishalov.skraper.model.PageInfo
 import ru.sokomishalov.skraper.model.Post
 import ru.sokomishalov.skraper.model.toImage
+import java.util.*
 
 
 class TikTokSkraper @JvmOverloads constructor(
@@ -22,7 +23,7 @@ class TikTokSkraper @JvmOverloads constructor(
 ) : Skraper {
 
     override suspend fun getPosts(path: String, limit: Int): List<Post> {
-        val userData = getUserData(path = path)
+        val userData = getUser(path = path)
 
         val id = userData?.get("userId")?.asText().orEmpty()
         val secUid = userData?.get("secUid")?.asText().orEmpty()
@@ -32,9 +33,9 @@ class TikTokSkraper @JvmOverloads constructor(
         val signature = generateSignature(url = url)
 
         val finalUrl = "${url}&_signature=${signature}"
-        val headers = mapOf("Referer" to baseUrl, "User-Agent" to USER_AGENT)
+        val headers = mapOf("Referer" to "${baseUrl}${path}", "User-Agent" to USER_AGENT)
 
-        val data = client.fetchJson(url = id, headers = headers)
+        val data = client.fetchJson(url = finalUrl, headers = headers)
 
         val items = data
                 ?.getByPath("body.itemListData")
@@ -48,7 +49,7 @@ class TikTokSkraper @JvmOverloads constructor(
     }
 
     override suspend fun getPageInfo(path: String): PageInfo? {
-        val user = getUserData(path = path)
+        val user = getUser(path = path)
 
         return user?.run {
             PageInfo(
@@ -66,7 +67,7 @@ class TikTokSkraper @JvmOverloads constructor(
     }
 
 
-    private suspend fun getUserData(path: String): JsonNode? {
+    private suspend fun getUser(path: String): JsonNode? {
         val document = client.fetchDocument(url = "${baseUrl}${path}", headers = mapOf("User-Agent" to USER_AGENT))
 
         val json = document
@@ -95,7 +96,7 @@ class TikTokSkraper @JvmOverloads constructor(
     }
 
     private suspend fun generateSignature(url: String): String? {
-        return "kekpek"
+        return UUID.randomUUID().toString()
     }
 
     companion object {
