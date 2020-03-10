@@ -119,7 +119,7 @@ class YoutubeSkraper(
                             ?: 1
 
                     val temporalAmount: TemporalAmount = when {
-1                        it.contains("moment", ignoreCase = true) -> Duration.ofMillis(amount.toLong())
+                        it.contains("moment", ignoreCase = true) -> Duration.ofMillis(amount.toLong())
                         it.contains("second", ignoreCase = true) -> Duration.ofSeconds(amount.toLong())
                         it.contains("minute", ignoreCase = true) -> Duration.ofMinutes(amount.toLong())
                         it.contains("hour", ignoreCase = true) -> Duration.ofHours(amount.toLong())

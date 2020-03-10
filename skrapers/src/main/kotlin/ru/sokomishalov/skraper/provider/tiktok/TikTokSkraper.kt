@@ -81,7 +81,7 @@ class TikTokSkraper @JvmOverloads constructor(
 
 
     private suspend fun getUser(path: String): JsonNode? {
-        val document = client.fetchDocument(url = "${baseUrl}${path}", headers = mapOf("User-Agent" to USER_AGENT))
+        val document = client.fetchDocument(url = "${baseUrl}${path}")
 
         val json = document
                 ?.getElementById("__NEXT_DATA__")
